@@ -15,10 +15,10 @@ DROP TABLE IF EXISTS "GroupEvents" CASCADE;
 -- Users table creation
 CREATE TABLE "Users" (
   "user_id" SERIAL PRIMARY KEY,
-  "username" TEXT NOT NULL UNIQUE,
-  "password" TEXT NOT NULL,
-  "email" TEXT NOT NULL UNIQUE,
-  "user_type" TEXT NOT NULL
+  "username" VARCHAR(255) NOT NULL UNIQUE,
+  "password" VARCHAR(255) NOT NULL,
+  "email" VARCHAR(255) NOT NULL UNIQUE,
+  "user_type" VARCHAR(255) NOT NULL
 );
 
 -- Members table creation
@@ -31,10 +31,9 @@ CREATE TABLE "Members" (
 -- MemberDetails table creation
 CREATE TABLE "MemberDetails" (
   "member_id" INTEGER,
-  "first_name" TEXT,
-  "last_name" TEXT,
+  "first_name" VARCHAR(255) NOT NULL,
+  "last_name" VARCHAR(255) NOT NULL,
   "fitness_goals" TEXT,
-  "health_metrics" TEXT,
   "exercise_routine" TEXT,
   "fitness_achievements" TEXT,
   "billing_info" TEXT,
@@ -62,6 +61,8 @@ CREATE TABLE "Trainers" (
 -- TrainerDetails table creation
 CREATE TABLE "TrainerDetails" (
   "trainer_id" INTEGER,
+  "first_name" VARCHAR(255) NOT NULL,
+  "last_name" VARCHAR(255) NOT NULL,
   "training_schedule" TEXT,
   "progress_notes" TEXT,
   FOREIGN KEY ("trainer_id") REFERENCES "Trainers"("trainer_id")
@@ -77,7 +78,7 @@ CREATE TABLE "Admins" (
 -- Rooms table creation
 CREATE TABLE "Rooms" (
   "room_id" SERIAL PRIMARY KEY,
-  "name" TEXT,
+  "name" TEXT NOT NULL,
   "equipment_status" TEXT
 );
 
@@ -95,8 +96,8 @@ CREATE TABLE "Session" (
 -- SessionDetails table creation
 CREATE TABLE "SessionDetails" (
   "session_id" INTEGER,
-  "session_date" TEXT,
-  "session_time" TEXT,
+  "session_date" DATE,
+  "session_time" TIME (0) NOT NULL,
   "session_status" TEXT,
   FOREIGN KEY ("session_id") REFERENCES "Session"("session_id")
 );
@@ -105,7 +106,8 @@ CREATE TABLE "SessionDetails" (
 CREATE TABLE "GroupEvents" (
   "event_id" SERIAL PRIMARY KEY,
   "event_name" TEXT,
-  "event_date" TEXT,
+  "event_date" DATE,
+  "event_time" TIME (0) NOT NULL,
   "event_description" TEXT,
   "trainer_id" INTEGER,
   "room_id" INTEGER,
