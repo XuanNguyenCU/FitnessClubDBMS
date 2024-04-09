@@ -78,34 +78,53 @@ def admin_page():
     global events_listbox
     global event_name_entry
     global event_date_entry
+    global event_time_entry
     global event_description_entry
     global event_trainer_entry
     global event_room_entry
 
-    # Using Frames to organize the layout
     events_frame = tk.Frame(window)
     rooms_frame = tk.Frame(window)
     equipment_frame = tk.Frame(window)
     logout_frame = tk.Frame(window)
 
-    # Grid layout for frames
-    events_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
-    rooms_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-    equipment_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="nsew")
+    # Layout frames
+    events_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew", rowspan=2)  # Allow rowspan for events_frame to occupy two rows
+    rooms_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+    equipment_frame.grid(row=1, column=1, padx=10, pady=10, sticky="nsew")
     logout_frame.grid(row=2, column=0, columnspan=2, pady=10, sticky="ew")
 
-    # Ensure that frames expand correctly
+    # Configure window grid
     window.columnconfigure(0, weight=1)
     window.columnconfigure(1, weight=1)
     window.rowconfigure(0, weight=1)
     window.rowconfigure(1, weight=1)
 
-    # Widgets for events_frame using grid
+    # Scheduled Events Listbox
     events_label = tk.Label(events_frame, text="Scheduled Events")
-    events_label.grid(row=0, column=0, sticky="ew")
+    events_label.pack(fill=tk.X)
 
     events_listbox = tk.Listbox(events_frame, width=60, height=10)
-    events_listbox.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+    events_listbox.pack(fill=tk.BOTH, expand=True)
+
+    # Billing Information Listbox
+    billing_info_label = tk.Label(events_frame, text="Billing Information")
+    billing_info_label.pack(fill=tk.X)
+
+    billing_info_listbox = tk.Listbox(events_frame, width=60, height=10)
+    billing_info_listbox.pack(fill=tk.BOTH, expand=True)
+
+    # Query database for billing_info from all members
+    cur.execute("""
+        SELECT md.first_name || ' ' || md.last_name || ': ' || md.billing_info AS billing_info
+        FROM "MemberDetails" md
+        JOIN "Members" m ON md.member_id = m.member_id
+    """)
+    billing_infos = cur.fetchall()
+
+    # Populate the billing_info_listbox
+    for billing_info in billing_infos:
+        billing_info_listbox.insert(tk.END, billing_info[0])
 
     # Widgets for rooms_frame using grid
     rooms_label = tk.Label(rooms_frame, text="Rooms")
@@ -139,19 +158,22 @@ def admin_page():
     event_date_entry = tk.Entry(event_form)
     event_date_entry.grid(row=1, column=1, sticky="ew")
 
-    tk.Label(event_form, text="Event Description").grid(row=2, column=0, sticky="w")
+    tk.Label(event_form, text="Event Time").grid(row=2, column=0, sticky="w")
+    event_time_entry = tk.Entry(event_form)
+    event_time_entry.grid(row=2, column=1, sticky="ew")
+
+    tk.Label(event_form, text="Event Description").grid(row=3, column=0, sticky="w")
     event_description_entry = tk.Entry(event_form)
-    event_description_entry.grid(row=2, column=1, sticky="ew")
+    event_description_entry.grid(row=3, column=1, sticky="ew")
 
-    tk.Label(event_form, text="Trainer ID").grid(row=3, column=0, sticky="w")
+    tk.Label(event_form, text="Trainer ID").grid(row=4, column=0, sticky="w")
     event_trainer_entry = tk.Entry(event_form)
-    event_trainer_entry.grid(row=3, column=1, sticky="ew")
+    event_trainer_entry.grid(row=4, column=1, sticky="ew")
 
-    tk.Label(event_form, text="Room ID").grid(row=4, column=0, sticky="w")
+    tk.Label(event_form, text="Room ID").grid(row=5, column=0, sticky="w")
     event_room_entry = tk.Entry(event_form)
-    event_room_entry.grid(row=4, column=1, sticky="ew")
+    event_room_entry.grid(row=5, column=1, sticky="ew")
 
-        # Stylish Set Status Button
     set_status_button = tk.Button(equipment_frame, text="Set Equipment Status", command=lambda: set_status(),
                                   font=('Helvetica', 12, 'bold'), bg='#007bff', fg='white', padx=10, pady=5)
     set_status_button.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
@@ -170,7 +192,7 @@ def admin_page():
     # Stylish Create Event Button
     create_event_button = tk.Button(event_form, text="Create Event", command=lambda: create_event(),
                                     font=('Helvetica', 12, 'bold'), bg='#4CAF50', fg='white', padx=10, pady=5)
-    create_event_button.grid(row=5, column=0, columnspan=2, pady=(10, 0))
+    create_event_button.grid(row=6, column=0, columnspan=2, pady=(10, 0))
 
     # Adding hover effect to Create Event Button
     change_on_hover(create_event_button, '#45a049', '#4CAF50')
@@ -178,7 +200,7 @@ def admin_page():
     # Stylish Delete Event Button
     delete_event_button = tk.Button(event_form, text="Delete Event", command=lambda: delete_event(),
                                     font=('Helvetica', 12, 'bold'), bg='#ff5722', fg='white', padx=10, pady=5)
-    delete_event_button.grid(row=6, column=0, columnspan=2, pady=(5, 10))
+    delete_event_button.grid(row=7, column=0, columnspan=2, pady=(5, 10))
 
     # Adding hover effect to Delete Event Button
     change_on_hover(delete_event_button, '#e64a19', '#ff5722')
@@ -189,7 +211,7 @@ def admin_page():
     for event in events:
         
         # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -219,12 +241,17 @@ def create_event():
 
     event_name = event_name_entry.get()
     event_date = event_date_entry.get()
+    event_time = event_time_entry.get()
     event_description = event_description_entry.get()
     event_trainer = event_trainer_entry.get()
     event_room = event_room_entry.get()
 
-    cur.execute("INSERT INTO \"GroupEvents\" (event_name, event_date, event_description, trainer_id, room_id) VALUES (%s, %s, %s, %s, %s)",
-                (event_name, event_date, event_description, event_trainer, event_room))
+    # Adjust the INSERT statement to include event_time
+    cur.execute("""
+        INSERT INTO "GroupEvents" 
+        (event_name, event_date, event_time, event_description, trainer_id, room_id) 
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (event_name, event_date, event_time, event_description, event_trainer, event_room))
 
     conn.commit()
 
@@ -234,7 +261,7 @@ def create_event():
     events_listbox.delete(0, tk.END)
     for event in events:
        # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -275,7 +302,7 @@ def delete_event():
     events_listbox.delete(0, tk.END)
     for event in events:
        # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -290,7 +317,6 @@ def delete_event():
     conn.close()
 
 
-# Set status in the admin page
 def set_status():
     # Get the selected room ID
     selected_room_index = rooms_listbox.curselection()
@@ -321,7 +347,8 @@ def set_status():
 def member_page(user_id):
     global events_listbox_member
     global details_listbox
-    global fitness_goal_entry
+    global health_metrics_listbox
+    global fitness_goal_entry, blood_pressure_entry, weight_entry, height_entry
     conn = psycopg2.connect(**db_config)
 
     cur = conn.cursor()
@@ -329,28 +356,42 @@ def member_page(user_id):
     member_id = cur.fetchone()[0]
     cur.execute("SELECT * FROM \"MemberDetails\" WHERE member_id = %s", (member_id,))
     member_details = cur.fetchone()
-    cur.execute("SELECT s.session_id, s.trainer_id, d.session_date, d.session_time, d.session_status, u.username FROM \"Session\" s JOIN \"SessionDetails\" d ON s.session_id = d.session_id JOIN \"Users\" u ON s.trainer_id = u.user_id WHERE s.member_id = %s", (member_id,))
+    cur.execute("""
+    SELECT s.session_id, s.trainer_id, d.session_date, d.session_time, d.session_status, u.username 
+    FROM "Session" s 
+    JOIN "SessionDetails" d ON s.session_id = d.session_id 
+    JOIN "Trainers" t ON s.trainer_id = t.trainer_id 
+    JOIN "Users" u ON t.user_id = u.user_id 
+    WHERE s.member_id = %s
+    """, (member_id,))
     sessions = cur.fetchall()
-    sessions_listbox_items = [f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}" for session in sessions]
+    sessions_listbox_items = [
+        f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}" 
+        for session in sessions
+    ]
 
-    # Fetching necessary data
     cur.execute("SELECT member_id FROM \"Members\" WHERE user_id = %s", (user_id,))
     member_id = cur.fetchone()[0]
     cur.execute("SELECT * FROM \"MemberDetails\" WHERE member_id = %s", (member_id,))
     member_details = cur.fetchone()
     cur.execute("""
-        SELECT s.session_id, s.trainer_id, d.session_date, d.session_time, d.session_status, u.username
-        FROM \"Session\" s
-        JOIN \"SessionDetails\" d ON s.session_id = d.session_id
-        JOIN \"Users\" u ON s.trainer_id = u.user_id
+        SELECT s.session_id, t.trainer_id, sd.session_date, sd.session_time, sd.session_status, u.username
+        FROM "Session" s
+        INNER JOIN "SessionDetails" sd ON s.session_id = sd.session_id
+        INNER JOIN "Trainers" t ON s.trainer_id = t.trainer_id
+        INNER JOIN "Users" u ON t.user_id = u.user_id
         WHERE s.member_id = %s
     """, (member_id,))
     sessions = cur.fetchall()
-    sessions_listbox_items = [f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}" for session in sessions]
+    sessions_listbox_items = [
+        f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}"
+        for session in sessions
+    ]
+
 
     window = tk.Tk()
     window.title("Member Page")
-    window.geometry("800x700")
+    window.geometry("900x850")
 
     main_frame = tk.Frame(window)
     main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -368,21 +409,33 @@ def member_page(user_id):
         f"First Name: {member_details[1]}",
         f"Last Name: {member_details[2]}",
         f"Fitness Goals: {member_details[3]}",
-        f"Health Metrics: {member_details[4]}",
-        f"Exercise Routine: {member_details[5]}",
-        f"Fitness Achievements: {member_details[6]}",
-        f"Billing Info: {member_details[7]}",
-        f"Loyalty Points: {member_details[8]}"
+        f"Exercise Routine: {member_details[4]}",
+        f"Fitness Achievements: {member_details[5]}",
+        f"Billing Info: {member_details[6]}",
+        f"Loyalty Points: {member_details[7]}"
     ]
     
     for detail in member_details:
         details_listbox.insert(tk.END, detail)
 
+    # Health Metrics section
+    cur.execute("SELECT * FROM \"HealthMetrics\" WHERE member_id = %s", (member_id,))
+    health_metrics = cur.fetchall()
+    health_metrics_frame = tk.LabelFrame(main_frame, text="Health Metrics", padx=10, pady=10)
+    health_metrics_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+
+    health_metrics_listbox = tk.Listbox(health_metrics_frame, height=3)
+    for metric in health_metrics:
+        health_metrics_listbox.insert(tk.END, f"Blood Pressure: {metric[2]}")
+        health_metrics_listbox.insert(tk.END, f"Weight: {metric[3]} kg")
+        health_metrics_listbox.insert(tk.END, f"Height: {metric[4]} inches") 
+    health_metrics_listbox.pack(fill=tk.BOTH, expand=True)
+
     # Sessions section
     sessions_frame = tk.LabelFrame(main_frame, text="Your Sessions", padx=10, pady=10)
-    sessions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
+    sessions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-    sessions_listbox = tk.Listbox(sessions_frame, height=5)
+    sessions_listbox = tk.Listbox(sessions_frame, height=2)
     for item in sessions_listbox_items:
         sessions_listbox.insert(tk.END, item)
     sessions_listbox.pack(fill=tk.BOTH, expand=True)
@@ -391,12 +444,17 @@ def member_page(user_id):
     events_frame = tk.LabelFrame(main_frame, text="Upcoming Events", padx=10, pady=10)
     events_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
 
-    events_listbox_member = tk.Listbox(events_frame, height=5)
+    events_listbox_member = tk.Listbox(events_frame, height=2)
     cur.execute("SELECT * FROM \"GroupEvents\"")
     events = cur.fetchall()
-    for event in events:  # Assume sessions variable holds events for this example
+    for event in events:
         # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
+        cur.execute("""
+        SELECT u.username 
+        FROM "Users" u
+        JOIN "Trainers" t ON u.user_id = t.user_id
+        WHERE t.trainer_id = %s
+        """, (event[4],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -405,22 +463,50 @@ def member_page(user_id):
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in room {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     events_listbox_member.pack(fill=tk.BOTH, expand=True)
     buttons_frame = tk.Frame(main_frame)
     buttons_frame.pack(fill=tk.X, pady=10)
 
-    fitness_goal_label = tk.Label(details_frame, text="Enter new value:")
-    fitness_goal_label.pack(side=tk.TOP, fill=tk.X)
-
     fitness_goal_entry = tk.Entry(details_frame)
     fitness_goal_entry.pack(side=tk.TOP, fill=tk.X)
 
-    set_goal_button = tk.Button(details_frame, text="Update Personal Info", command=lambda: update_personal(user_id))
-    set_goal_button.pack(pady=10)
+    # Create a subframe for a more compact layout using grid
+    entries_frame = tk.Frame(health_metrics_frame)
+    entries_frame.pack(pady=10)
 
-    # Register and Logout buttons
+    # Blood Pressure Entry
+    tk.Label(entries_frame, text="New Blood Pressure:").grid(row=0, column=0, sticky="w")
+    blood_pressure_entry = tk.Entry(entries_frame)
+    blood_pressure_entry.grid(row=0, column=1, sticky="ew")
+
+    # Weight Entry
+    tk.Label(entries_frame, text="New Weight (kg):").grid(row=1, column=0, sticky="w")
+    weight_entry = tk.Entry(entries_frame)
+    weight_entry.grid(row=1, column=1, sticky="ew")
+
+    # Height Entry
+    tk.Label(entries_frame, text="New Height (in):").grid(row=2, column=0, sticky="w")
+    height_entry = tk.Entry(entries_frame)
+    height_entry.grid(row=2, column=1, sticky="ew")
+
+    # Ensure the entries_frame column 1 (where entries are) expands to fill the space
+    entries_frame.columnconfigure(1, weight=1)
+    update_metrics_button = tk.Button(health_metrics_frame, text="Update Metrics",
+                                      command=lambda: update_health_metrics(user_id), font=('Arial', 10, 'bold'),
+                                    bg='#dda0dd',
+                                    fg='white',
+                                    padx=8,
+                                    pady=4)
+    update_metrics_button.pack(pady=10)
+
+    set_goal_button = tk.Button(details_frame, text="Update Personal Info", command=lambda: update_personal(user_id), font=('Arial', 10, 'bold'),
+                                    bg='#007BFF',
+                                    fg='white',
+                                    padx=8, # Horizontal padding
+                                    pady=4) # Vertical padding
+    set_goal_button.pack(pady=8)
 
     register_button = tk.Button(buttons_frame, text="Register for Event", 
                                 command=lambda: register_for_event(member_id, events_listbox_member.get(tk.ACTIVE)[0]),
@@ -442,10 +528,9 @@ def member_page(user_id):
 def update_personal(user_id):
 
     conn = psycopg2.connect(**db_config)
-
     details_index = details_listbox.curselection()
     if len(details_index ) == 0:
-        messagebox.showerror("Error", "No room selected")
+        messagebox.showerror("Error", "No personal info selected")
         return
     
     cur = conn.cursor()
@@ -467,11 +552,10 @@ def update_personal(user_id):
         f"First Name: {member_details[1]}",
         f"Last Name: {member_details[2]}",
         f"Fitness Goals: {member_details[3]}",
-        f"Health Metrics: {member_details[4]}",
-        f"Exercise Routine: {member_details[5]}",
-        f"Fitness Achievements: {member_details[6]}",
-        f"Billing Info: {member_details[7]}",
-        f"Loyalty Points: {member_details[8]}"
+        f"Exercise Routine: {member_details[4]}",
+        f"Fitness Achievements: {member_details[5]}",
+        f"Billing Info: {member_details[6]}",
+        f"Loyalty Points: {member_details[7]}"
     ]
     
     # Update the status in the listbox
@@ -479,6 +563,35 @@ def update_personal(user_id):
     for detail in member_details:
         details_listbox.insert(tk.END, detail)
         print(detail)
+    cur.close()
+    conn.close()
+
+def update_health_metrics(user_id):
+    conn = psycopg2.connect(**db_config)
+    cur = conn.cursor()
+    cur.execute("SELECT member_id FROM \"Members\" WHERE user_id = %s", (user_id,))
+    member_id = cur.fetchone()[0]
+
+    new_blood_pressure = blood_pressure_entry.get()
+    new_weight = weight_entry.get()
+    new_height = height_entry.get()
+
+    # Update HealthMetrics in the database for the member
+    cur.execute("""
+        UPDATE "HealthMetrics" 
+        SET blood_pressure = %s, weight = %s, height = %s 
+        WHERE member_id = %s
+    """, (new_blood_pressure, new_weight, new_height, member_id))
+    conn.commit()
+
+    cur.execute("SELECT * FROM \"HealthMetrics\" WHERE member_id = %s", (member_id,))
+    updated_metrics = cur.fetchone()
+
+    health_metrics_listbox.delete(0, tk.END)
+    health_metrics_listbox.insert(tk.END, f"Blood Pressure: {updated_metrics[2]}")
+    health_metrics_listbox.insert(tk.END, f"Weight: {updated_metrics[3]} kg")
+    health_metrics_listbox.insert(tk.END, f"Height: {updated_metrics[4]} inches")
+
     cur.close()
     conn.close()
     
@@ -496,7 +609,7 @@ def register_for_event(member_id, event_id):
     events_listbox_member.delete(0, tk.END)
     for event in events:
         # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -538,10 +651,9 @@ def view_member_profile(conn):
                 f"First Name: {detail[1]}\n"
                 f"Last Name: {detail[2]}\n"
                 f"Fitness Goals: {detail[3]}\n"
-                f"Health Metrics: {detail[4]}\n"
-                f"Exercise Routine: {detail[5]}\n"
-                f"Fitness Achievements: {detail[6]}\n"
-                f"Billing Info: {detail[7]}" 
+                f"Exercise Routine: {detail[4]}\n"
+                f"Fitness Achievements: {detail[5]}\n"
+                f"Billing Info: {detail[6]}" 
                 for detail in member_details])
             messagebox.showinfo("Member Profile", details_str)
 
