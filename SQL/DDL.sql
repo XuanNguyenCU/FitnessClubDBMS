@@ -67,7 +67,7 @@ CREATE TABLE "Rooms" (
   "equipment_status" TEXT
 );
 
--- Session table creation
+-- Sessions (with Trainers) table creation
 CREATE TABLE "Sessions" (
   "session_id" SERIAL PRIMARY KEY,
   "member_id" INTEGER,
