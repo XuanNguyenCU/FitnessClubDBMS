@@ -116,9 +116,8 @@ def admin_page():
 
     # Query database for billing_info from all members
     cur.execute("""
-        SELECT md.first_name || ' ' || md.last_name || ': ' || md.billing_info AS billing_info
-        FROM "MemberDetails" md
-        JOIN "Members" m ON md.member_id = m.member_id
+    SELECT m.first_name || ' ' || m.last_name || ': ' || m.billing_info AS billing_info
+    FROM "Members" m
     """)
     billing_infos = cur.fetchall()
 
@@ -220,7 +219,7 @@ def admin_page():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in room {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     # Populate rooms listbox
     cur.execute("SELECT * FROM \"Rooms\"")
@@ -270,7 +269,7 @@ def create_event():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in room {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -311,7 +310,7 @@ def delete_event():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in room {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -354,12 +353,12 @@ def member_page(user_id):
     cur = conn.cursor()
     cur.execute("SELECT member_id FROM \"Members\" WHERE user_id = %s", (user_id,))
     member_id = cur.fetchone()[0]
-    cur.execute("SELECT * FROM \"MemberDetails\" WHERE member_id = %s", (member_id,))
+    cur.execute("SELECT * FROM \"Members\" WHERE member_id = %s", (member_id,))
     member_details = cur.fetchone()
+    
     cur.execute("""
-    SELECT s.session_id, s.trainer_id, d.session_date, d.session_time, d.session_status, u.username 
-    FROM "Session" s 
-    JOIN "SessionDetails" d ON s.session_id = d.session_id 
+    SELECT s.session_id, s.trainer_id, s.session_date, s.session_time, s.session_status, u.username 
+    FROM "Sessions" s 
     JOIN "Trainers" t ON s.trainer_id = t.trainer_id 
     JOIN "Users" u ON t.user_id = u.user_id 
     WHERE s.member_id = %s
@@ -369,25 +368,6 @@ def member_page(user_id):
         f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}" 
         for session in sessions
     ]
-
-    cur.execute("SELECT member_id FROM \"Members\" WHERE user_id = %s", (user_id,))
-    member_id = cur.fetchone()[0]
-    cur.execute("SELECT * FROM \"MemberDetails\" WHERE member_id = %s", (member_id,))
-    member_details = cur.fetchone()
-    cur.execute("""
-        SELECT s.session_id, t.trainer_id, sd.session_date, sd.session_time, sd.session_status, u.username
-        FROM "Session" s
-        INNER JOIN "SessionDetails" sd ON s.session_id = sd.session_id
-        INNER JOIN "Trainers" t ON s.trainer_id = t.trainer_id
-        INNER JOIN "Users" u ON t.user_id = u.user_id
-        WHERE s.member_id = %s
-    """, (member_id,))
-    sessions = cur.fetchall()
-    sessions_listbox_items = [
-        f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Status: {session[4]}"
-        for session in sessions
-    ]
-
 
     window = tk.Tk()
     window.title("Member Page")
@@ -405,14 +385,14 @@ def member_page(user_id):
     details_listbox.pack(fill=tk.BOTH, expand=True)
 
     member_details = [
-        f"Member ID: {member_details[0]}",
-        f"First Name: {member_details[1]}",
-        f"Last Name: {member_details[2]}",
-        f"Fitness Goals: {member_details[3]}",
-        f"Exercise Routine: {member_details[4]}",
-        f"Fitness Achievements: {member_details[5]}",
-        f"Billing Info: {member_details[6]}",
-        f"Loyalty Points: {member_details[7]}"
+        f"Member ID: {member_details[1]}",
+        f"First Name: {member_details[2]}",
+        f"Last Name: {member_details[3]}",
+        f"Fitness Goals: {member_details[4]}",
+        f"Exercise Routine: {member_details[5]}",
+        f"Fitness Achievements: {member_details[6]}",
+        f"Billing Info: {member_details[7]}",
+        f"Loyalty Points: {member_details[8]}"
     ]
     
     for detail in member_details:
@@ -428,7 +408,7 @@ def member_page(user_id):
     for metric in health_metrics:
         health_metrics_listbox.insert(tk.END, f"Blood Pressure: {metric[2]}")
         health_metrics_listbox.insert(tk.END, f"Weight: {metric[3]} kg")
-        health_metrics_listbox.insert(tk.END, f"Height: {metric[4]} inches") 
+        health_metrics_listbox.insert(tk.END, f"Height: {metric[4]} cm") 
     health_metrics_listbox.pack(fill=tk.BOTH, expand=True)
 
     # Sessions section
@@ -454,16 +434,16 @@ def member_page(user_id):
         FROM "Users" u
         JOIN "Trainers" t ON u.user_id = t.user_id
         WHERE t.trainer_id = %s
-        """, (event[4],))
+        """, (event[5],))
         trainer_name = cur.fetchone()[0]
-        cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
+        cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[6],))
         room_name = cur.fetchone()[0]
 
         # Count the number of members attending the event
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}, {event[1]} on {event[2]} held by {trainer_name} in the {room_name}. Time: {event[3]}. {member_count} members attending.")
 
     events_listbox_member.pack(fill=tk.BOTH, expand=True)
     buttons_frame = tk.Frame(main_frame)
@@ -487,7 +467,7 @@ def member_page(user_id):
     weight_entry.grid(row=1, column=1, sticky="ew")
 
     # Height Entry
-    tk.Label(entries_frame, text="New Height (in):").grid(row=2, column=0, sticky="w")
+    tk.Label(entries_frame, text="New Height (cm):").grid(row=2, column=0, sticky="w")
     height_entry = tk.Entry(entries_frame)
     height_entry.grid(row=2, column=1, sticky="ew")
 
@@ -541,21 +521,21 @@ def update_personal(user_id):
 
     # Update the status of the selected room in the database
     cur = conn.cursor()
-    cur.execute("UPDATE \"MemberDetails\" SET fitness_goals = %s WHERE member_id = %s", (new_status, member_id))
+    cur.execute("UPDATE \"Members\" SET fitness_goals = %s WHERE member_id = %s", (new_status, member_id))
     conn.commit()
 
-    cur.execute("SELECT * FROM \"MemberDetails\" WHERE member_id = %s", (member_id,))
+    cur.execute("SELECT * FROM \"Members\" WHERE member_id = %s", (member_id,))
     member_details = cur.fetchone()
 
     member_details = [
-        f"Member ID: {member_details[0]}",
-        f"First Name: {member_details[1]}",
-        f"Last Name: {member_details[2]}",
-        f"Fitness Goals: {member_details[3]}",
-        f"Exercise Routine: {member_details[4]}",
-        f"Fitness Achievements: {member_details[5]}",
-        f"Billing Info: {member_details[6]}",
-        f"Loyalty Points: {member_details[7]}"
+        f"Member ID: {member_details[1]}",
+        f"First Name: {member_details[2]}",
+        f"Last Name: {member_details[3]}",
+        f"Fitness Goals: {member_details[4]}",
+        f"Exercise Routine: {member_details[5]}",
+        f"Fitness Achievements: {member_details[6]}",
+        f"Billing Info: {member_details[7]}",
+        f"Loyalty Points: {member_details[8]}"
     ]
     
     # Update the status in the listbox
@@ -590,7 +570,7 @@ def update_health_metrics(user_id):
     health_metrics_listbox.delete(0, tk.END)
     health_metrics_listbox.insert(tk.END, f"Blood Pressure: {updated_metrics[2]}")
     health_metrics_listbox.insert(tk.END, f"Weight: {updated_metrics[3]} kg")
-    health_metrics_listbox.insert(tk.END, f"Height: {updated_metrics[4]} inches")
+    health_metrics_listbox.insert(tk.END, f"Height: {updated_metrics[4]} cm")
 
     cur.close()
     conn.close()
@@ -618,7 +598,7 @@ def register_for_event(member_id, event_id):
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in room {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -628,7 +608,7 @@ def set_trainer_availability(conn, trainer_id):
     new_availability = simpledialog.askstring("Availability", "Enter your available times (e.g., 'Monday 10-12'): ")
     if new_availability:
         with conn.cursor() as cur:
-            cur.execute("UPDATE \"TrainerDetails\" SET training_schedule = %s WHERE trainer_id = %s", (new_availability, trainer_id))
+            cur.execute("UPDATE \"Trainers\" SET training_schedule = %s WHERE trainer_id = %s", (new_availability, trainer_id))
             conn.commit()
         messagebox.showinfo("Success", "Your availability has been updated.")
 
@@ -637,10 +617,9 @@ def view_member_profile(conn):
     if member_name:
         with conn.cursor() as cur:
             cur.execute("""
-            SELECT md.* 
-            FROM \"MemberDetails\" md
-            JOIN \"Members\" m ON md.member_id = m.member_id
-            WHERE md.first_name ILIKE %s
+            SELECT m.* 
+            FROM "Members" m
+            WHERE m.first_name ILIKE %s
             """, (f'%{member_name}%',))
             member_details = cur.fetchall()
         print(member_details)
