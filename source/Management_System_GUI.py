@@ -1,7 +1,5 @@
-# Xuan Nguyen 101228417
-# COMP 3005 - Health and Fitness Management System
-
 import psycopg2
+from decimal import Decimal
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
@@ -11,7 +9,102 @@ def change_on_hover(button, colorOnHover, colorOnLeave):
 
     # Adjusting the background of the button when it is not hovered over
     button.bind("<Leave>", func=lambda e: button.config(background=colorOnLeave))
-    
+
+def registration_page():
+    registration_window = tk.Toplevel()
+    registration_window.title("Registration")
+    registration_window.geometry("400x400")
+
+    tk.Label(registration_window, text="Username:").pack()
+    username_entry = tk.Entry(registration_window)
+    username_entry.pack()
+
+    tk.Label(registration_window, text="Password:").pack()
+    password_entry = tk.Entry(registration_window, show="*")
+    password_entry.pack()
+
+    tk.Label(registration_window, text="Email:").pack()
+    email_entry = tk.Entry(registration_window)
+    email_entry.pack()
+
+    tk.Label(registration_window, text="First Name:").pack()
+    first_name_entry = tk.Entry(registration_window)
+    first_name_entry.pack()
+
+    tk.Label(registration_window, text="Last Name:").pack()
+    last_name_entry = tk.Entry(registration_window)
+    last_name_entry.pack()
+
+    tk.Label(registration_window, text="Fitness Goals:").pack()
+    fitness_goals_entry = tk.Entry(registration_window)
+    fitness_goals_entry.pack()
+
+    tk.Label(registration_window, text="Exercise Routine:").pack()
+    exercise_routine_entry = tk.Entry(registration_window)
+    exercise_routine_entry.pack()
+
+    tk.Label(registration_window, text="Blood Pressure:").pack()
+    blood_pressure_entry = tk.Entry(registration_window)
+    blood_pressure_entry.pack()
+
+    tk.Label(registration_window, text="Weight (kg):").pack()
+    weight_entry = tk.Entry(registration_window)
+    weight_entry.pack()
+
+    tk.Label(registration_window, text="Height (cm):").pack()
+    height_entry = tk.Entry(registration_window)
+    height_entry.pack()
+
+    submit_button = tk.Button(registration_window, text="Register", command=lambda: register_user(
+        username_entry.get(),
+        password_entry.get(),
+        email_entry.get(),
+        first_name_entry.get(),
+        last_name_entry.get(),
+        fitness_goals_entry.get(),
+        exercise_routine_entry.get(),
+        blood_pressure_entry.get(),
+        weight_entry.get(),
+        height_entry.get(),
+        registration_window))
+    submit_button.pack()
+
+
+def register_user(username, password, email, first_name, last_name, fitness_goals, exercise_routine, blood_pressure, weight, height, window):
+    try:
+        conn = psycopg2.connect(**db_config)
+        with conn.cursor() as cur:
+            # Insert into Users table
+            cur.execute("""
+                INSERT INTO "Users" (username, password, email, user_type) 
+                VALUES (%s, %s, %s, 'member') RETURNING user_id
+            """, (username, password, email))
+            user_id = cur.fetchone()[0]
+
+            # Insert into Members table
+            cur.execute("""
+                INSERT INTO "Members" (user_id, first_name, last_name, fitness_goals, exercise_routine, billing_info, loyalty_points) 
+                VALUES (%s, %s, %s, %s, %s, 0.00, 1)
+            """, (user_id, first_name, last_name, fitness_goals, exercise_routine))
+
+            # Insert into HealthMetrics table
+            cur.execute("""
+                INSERT INTO "HealthMetrics" (blood_pressure, weight, height) 
+                VALUES (%s, %s, %s)
+            """, (blood_pressure, weight, height))
+            conn.commit()
+        window.destroy()
+
+        messagebox.showinfo("Registration Success", "You have successfully registered!")
+    except Exception as e:
+        messagebox.showerror("Error", "Registration failed: " + str(e))
+        window.destroy()
+    finally:
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
 
 def login_page():
     window = tk.Tk()
@@ -39,11 +132,14 @@ def login_page():
     login_button = tk.Button(main_frame, text="Login", command=lambda: login(username_entry.get(), password_entry.get(), window))
     # Adjusting the button to be directly under the password box
     login_button.grid(row=2, column=1, pady=(10, 0))
-    login_button.config(font=("Arial", 12), bg="#4CAF50", fg="white", padx=40, pady=5)
+    login_button.config(font=("Arial", 12, 'bold'), bg="#4CAF50", fg="white", padx=40, pady=5)
+    change_on_hover(login_button, '#45a049', '#4CAF50')
 
     # Centering the main_frame
     main_frame.grid_columnconfigure(0, weight=1)
     main_frame.grid_columnconfigure(1, weight=1)
+    registration_button = tk.Button(window, text="Register", command=lambda: registration_page(), bg='blue', fg='white', font=('Arial', 12, 'bold'))
+    registration_button.grid(row=0, column=0, sticky="nw", padx=10, pady=10)  # Aligns to top left corner
 
     window.mainloop()
 
@@ -174,34 +270,27 @@ def admin_page():
     event_room_entry.grid(row=5, column=1, sticky="ew")
 
     set_status_button = tk.Button(equipment_frame, text="Set Equipment Status", command=lambda: set_status(),
-                                  font=('Helvetica', 12, 'bold'), bg='#007bff', fg='white', padx=10, pady=5)
+                                  font=('Arial', 12, 'bold'), bg='#007bff', fg='white', padx=10, pady=5)
     set_status_button.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
 
     # Adding hover effect to Set Status Button
     change_on_hover(set_status_button, '#0056b3', '#007bff')
 
-    # Stylish Logout Button
     logout_button = tk.Button(logout_frame, text="Logout", command=window.destroy,
-                              font=('Helvetica', 12, 'bold'), bg='#f44336', fg='white', padx=10, pady=5)
+                              font=('Arial', 12, 'bold'), bg='#f44336', fg='white', padx=10, pady=5)
     logout_button.pack(side=tk.RIGHT, padx=10)
-
-    # Adding hover effect to Logout Button
     change_on_hover(logout_button, '#d32f2f', '#f44336')
 
     # Stylish Create Event Button
     create_event_button = tk.Button(event_form, text="Create Event", command=lambda: create_event(),
-                                    font=('Helvetica', 12, 'bold'), bg='#4CAF50', fg='white', padx=10, pady=5)
+                                    font=('Arial', 12, 'bold'), bg='#4CAF50', fg='white', padx=10, pady=5)
     create_event_button.grid(row=6, column=0, columnspan=2, pady=(10, 0))
-
-    # Adding hover effect to Create Event Button
     change_on_hover(create_event_button, '#45a049', '#4CAF50')
 
     # Stylish Delete Event Button
     delete_event_button = tk.Button(event_form, text="Delete Event", command=lambda: delete_event(),
-                                    font=('Helvetica', 12, 'bold'), bg='#ff5722', fg='white', padx=10, pady=5)
+                                    font=('Arial', 12, 'bold'), bg='#ff5722', fg='white', padx=10, pady=5)
     delete_event_button.grid(row=7, column=0, columnspan=2, pady=(5, 10))
-
-    # Adding hover effect to Delete Event Button
     change_on_hover(delete_event_button, '#e64a19', '#ff5722')
 
     # Populate events listbox
@@ -219,7 +308,7 @@ def admin_page():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
 
     # Populate rooms listbox
     cur.execute("SELECT * FROM \"Rooms\"")
@@ -245,31 +334,40 @@ def create_event():
     event_trainer = event_trainer_entry.get()
     event_room = event_room_entry.get()
 
-    # Adjust the INSERT statement to include event_time
-    cur.execute("""
-        INSERT INTO "GroupEvents" 
-        (event_name, event_date, event_time, event_description, trainer_id, room_id) 
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """, (event_name, event_date, event_time, event_description, event_trainer, event_room))
+    # Check the trainer's availability
+    cur.execute("SELECT availability_date FROM \"Trainers\" WHERE trainer_id = %s", (event_trainer,))
+    trainer_availability = cur.fetchone()
+    if trainer_availability is None:
+        messagebox.showerror("Error", "Trainer ID not found.")
+        return
+    elif event_date != str(trainer_availability[0]):
+        messagebox.showerror("Error", "Trainer is not available on this date.")
+        return
+    else:
+        # Proceed to insert the new event as the trainer is available on this date
+        cur.execute("""
+            INSERT INTO "GroupEvents" 
+            (event_name, event_date, event_time, event_description, trainer_id, room_id) 
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (event_name, event_date, event_time, event_description, event_trainer, event_room))
+        conn.commit()
+        messagebox.showinfo("Success", "Event created successfully.")
 
-    conn.commit()
+        cur.execute("SELECT * FROM \"GroupEvents\"")
+        events = cur.fetchall()
+        events_listbox.delete(0, tk.END)
+        for event in events:
+            # Fetch the trainer name and room name using the trainer ID and room ID
+            cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+            trainer_name = cur.fetchone()[0]
+            cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
+            room_name = cur.fetchone()[0]
+            
+            # Count the number of members attending the event
+            cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
+            member_count = cur.fetchone()[0]
 
-    # Update the status in the listbox
-    cur.execute("SELECT * FROM \"GroupEvents\"")
-    events = cur.fetchall()
-    events_listbox.delete(0, tk.END)
-    for event in events:
-       # Fetch the trainer name and room name using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
-        trainer_name = cur.fetchone()[0]
-        cur.execute("SELECT name FROM \"Rooms\" WHERE room_id = %s", (event[5],))
-        room_name = cur.fetchone()[0]
-        
-        # Count the number of members attending the event
-        cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
-        member_count = cur.fetchone()[0]
-
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+            events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -310,7 +408,7 @@ def delete_event():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -391,8 +489,8 @@ def member_page(user_id):
         f"Fitness Goals: {member_details[4]}",
         f"Exercise Routine: {member_details[5]}",
         f"Fitness Achievements: {member_details[6]}",
-        f"Billing Info: {member_details[7]}",
-        f"Loyalty Points: {member_details[8]}"
+        f"Outstanding Fees: ${member_details[7]}",
+        f"Loyalty Points: {member_details[8]}",
     ]
     
     for detail in member_details:
@@ -443,7 +541,7 @@ def member_page(user_id):
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}, {event[1]} on {event[2]} held by {trainer_name} in the {room_name}. Time: {event[3]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
 
     events_listbox_member.pack(fill=tk.BOTH, expand=True)
     buttons_frame = tk.Frame(main_frame)
@@ -534,7 +632,7 @@ def update_personal(user_id):
         f"Fitness Goals: {member_details[4]}",
         f"Exercise Routine: {member_details[5]}",
         f"Fitness Achievements: {member_details[6]}",
-        f"Billing Info: {member_details[7]}",
+        f"Outstanding Fees: ${member_details[7]}",
         f"Loyalty Points: {member_details[8]}"
     ]
     
@@ -542,7 +640,6 @@ def update_personal(user_id):
     details_listbox.delete(0, tk.END)
     for detail in member_details:
         details_listbox.insert(tk.END, detail)
-        print(detail)
     cur.close()
     conn.close()
 
@@ -576,16 +673,20 @@ def update_health_metrics(user_id):
     conn.close()
     
 
-# Register for event in member page
 def register_for_event(member_id, event_id):
     conn = psycopg2.connect(**db_config)
     cur = conn.cursor()
     cur.execute("INSERT INTO \"MemberGroupEvent\" (member_id, event_id) VALUES (%s, %s)", (member_id, event_id))
+
+    cur.execute("SELECT billing_info FROM \"Members\" WHERE member_id = %s", (member_id,))
+    current_billing = cur.fetchone()[0] or Decimal('0.00')  # Default to Decimal('0.00') if None
+    # Update billing_info with an additional $20.99
+    new_billing = current_billing + Decimal('20.99')
+    cur.execute("UPDATE \"Members\" SET billing_info = %s WHERE member_id = %s", (new_billing, member_id))
     conn.commit()
 
-    #Update list by reloading contents
     cur.execute("SELECT * FROM \"GroupEvents\"")
-    events = cur.fetchall()
+    events = cur.fetchall()                     # Update events list by reloading contents
     events_listbox_member.delete(0, tk.END)
     for event in events:
         # Fetch the trainer name and room name using the trainer ID and room ID
@@ -598,19 +699,45 @@ def register_for_event(member_id, event_id):
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
 
+    cur.execute("SELECT * FROM \"Members\" WHERE member_id = %s", (member_id,))
+    member_details = cur.fetchone()
+    member_details = [
+        f"Member ID: {member_details[1]}",
+        f"First Name: {member_details[2]}",
+        f"Last Name: {member_details[3]}",
+        f"Fitness Goals: {member_details[4]}",
+        f"Exercise Routine: {member_details[5]}",
+        f"Fitness Achievements: {member_details[6]}",
+        f"Outstanding Fees: ${member_details[7]}",
+        f"Loyalty Points: {member_details[8]}"
+    ]
+    # Update the status in the listbox
+    details_listbox.delete(0, tk.END)
+    for detail in member_details:
+        details_listbox.insert(tk.END, detail)
+    
     cur.close()
     conn.close()
 
 
 def set_trainer_availability(conn, trainer_id):
-    new_availability = simpledialog.askstring("Availability", "Enter your available times (e.g., 'Monday 10-12'): ")
-    if new_availability:
+
+    new_date = simpledialog.askstring("Availability", "Enter your available date (e.g., '2024-04-30'): ")
+    if new_date:
         with conn.cursor() as cur:
-            cur.execute("UPDATE \"Trainers\" SET training_schedule = %s WHERE trainer_id = %s", (new_availability, trainer_id))
+            cur.execute("UPDATE \"Trainers\" SET availability_date = %s WHERE trainer_id = %s", (new_date, trainer_id))
             conn.commit()
-        messagebox.showinfo("Success", "Your availability has been updated.")
+        messagebox.showinfo("Success", f"Your availability date has been updated to {new_date}.")
+
+    new_time = simpledialog.askstring("Availability", "Enter your available times (e.g., '15:30:00'): ")
+    if new_time:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE \"Trainers\" SET availability_time = %s WHERE trainer_id = %s", (new_time, trainer_id))
+            conn.commit()
+        messagebox.showinfo("Success", f"Your availability time has been updated to {new_time}.")
+
 
 def view_member_profile(conn):
     member_name = simpledialog.askstring("Member Search", "Enter the member's first name to search: ")
@@ -619,20 +746,20 @@ def view_member_profile(conn):
             cur.execute("""
             SELECT m.* 
             FROM "Members" m
-            WHERE m.first_name ILIKE %s
-            """, (f'%{member_name}%',))
+            WHERE m.first_name = %s
+            """, (f'{member_name}',))
             member_details = cur.fetchall()
         print(member_details)
             
         if member_details:
             details_str = "\n\n".join([
-                f"Member ID: {detail[0]}\n"
-                f"First Name: {detail[1]}\n"
-                f"Last Name: {detail[2]}\n"
-                f"Fitness Goals: {detail[3]}\n"
-                f"Exercise Routine: {detail[4]}\n"
-                f"Fitness Achievements: {detail[5]}\n"
-                f"Billing Info: {detail[6]}" 
+                f"Member ID: {detail[1]}\n"
+                f"First Name: {detail[2]}\n"
+                f"Last Name: {detail[3]}\n"
+                f"Fitness Goals: {detail[4]}\n"
+                f"Exercise Routine: {detail[5]}\n"
+                f"Fitness Achievements: {detail[6]}\n"
+                f"Outstanding Fees: ${detail[7]}" 
                 for detail in member_details])
             messagebox.showinfo("Member Profile", details_str)
 
@@ -671,6 +798,7 @@ def trainer_page(user_id):
                                         padx=10, # Horizontal padding
                                         pady=5) # Vertical padding
     set_availability_button.pack(pady=10) # Adding some padding around the button for better spacing
+    change_on_hover(set_availability_button, '#45a049', '#4CAF50')
 
     # Member Profile Viewing
     profile_frame = tk.LabelFrame(window, text="Member Profile Viewing")
@@ -678,12 +806,20 @@ def trainer_page(user_id):
 
     view_profile_button = tk.Button(profile_frame, text="View Member Profile",
                                     command=lambda: view_member_profile(conn),
-                                    font=('Arial', 12, 'bold'), # Font styling
-                                    bg='#007BFF', # Background color, using a blue shade
-                                    fg='white', # Font color
+                                    font=('Arial', 12, 'bold'),
+                                    bg='#007BFF',
+                                    fg='white',
                                     padx=10, # Horizontal padding
                                     pady=5) # Vertical padding
-    view_profile_button.pack(pady=10) # Adding some vertical padding
+    view_profile_button.pack(pady=10)
+    change_on_hover(view_profile_button, '#0056b3', '#007bff')
+
+    logout_frame = tk.Frame(window)
+    logout_frame.pack(pady=8, fill=tk.X)
+    logout_button = tk.Button(logout_frame, text="Logout", command=window.destroy,
+                              font=('Arial', 12, 'bold'), bg='#f44336', fg='white', padx=8, pady=5)
+    logout_button.pack(side=tk.RIGHT, padx=10)
+    change_on_hover(logout_button, '#d32f2f', '#f44336')
 
     window.mainloop()
     conn.close()
@@ -768,8 +904,3 @@ def main():
         elif (user_type == "member"):
             print("Member login")
             member_page(user_id)
-
-
-# main guard
-if __name__ == "__main__":
-   main()
