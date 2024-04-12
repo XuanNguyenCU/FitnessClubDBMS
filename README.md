@@ -1,5 +1,5 @@
 # Fitness Club DBMS
-An application for a Health and Fitness Club Management System.
+A GUI application for a Health and Fitness Club Management System.
 This system will serve as a platform catering to the needs of club members, trainers, and administrative staff.
 
 ### Project Report
@@ -25,8 +25,8 @@ Download DDL.sql and DML.sql from my ```SQL``` folder.
 
 ### Setting up in PosgreSQL
 Login to pgAdmin 4 and create a new database with a name of your choice.
-Go to the Query tool and open the setup.sql script to run the example DDL and DLM commands.
-These commands create a "students" table and populate the table with initial sample data.
+Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Run
+Optionally, you can just execute the Python program which will automatically set up the sample data for you.
 
 ### Compilation
 You can run the Python program using your IDE or use the terminal:
