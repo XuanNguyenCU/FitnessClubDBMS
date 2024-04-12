@@ -1,6 +1,7 @@
 -- Clean up
 DROP TABLE IF EXISTS "Users" CASCADE;
 DROP TABLE IF EXISTS "Admins" CASCADE;
+DROP TABLE IF EXISTS "Dates" CASCADE;
 DROP TABLE IF EXISTS "Trainers" CASCADE;
 DROP TABLE IF EXISTS "Members" CASCADE;
 DROP TABLE IF EXISTS "HealthMetrics" CASCADE;
@@ -27,7 +28,7 @@ CREATE TABLE "Members" (
   "fitness_goals" TEXT,
   "exercise_routine" TEXT,
   "fitness_achievements" TEXT,
-  "billing_info" TEXT,
+  "billing_info" DECIMAL(12,2),
   "loyalty_points" INTEGER,
   FOREIGN KEY ("user_id") REFERENCES "Users"("user_id")
 );
@@ -36,9 +37,9 @@ CREATE TABLE "Members" (
 CREATE TABLE "HealthMetrics" (
   "metric_id" SERIAL PRIMARY KEY,
   "member_id" INTEGER,
-  "blood_pressure" TEXT,
-  "weight" NUMERIC,
-  "height" NUMERIC,
+  "blood_pressure" TEXT NOT NULL,
+  "weight" NUMERIC NOT NULL,
+  "height" NUMERIC NOT NULL,
   FOREIGN KEY ("member_id") REFERENCES "Members"("member_id")
 );
 
@@ -48,9 +49,14 @@ CREATE TABLE "Trainers" (
   "trainer_id" SERIAL PRIMARY KEY,
   "first_name" VARCHAR(255) NOT NULL,
   "last_name" VARCHAR(255) NOT NULL,
-  "training_schedule" TEXT,
-  "progress_notes" TEXT,
   FOREIGN KEY ("user_id") REFERENCES "Users"("user_id")
+);
+
+CREATE TABLE "Dates" (
+  "date_id" SERIAL PRIMARY KEY,
+  "trainer_id" INTEGER,
+  "availability" TIMESTAMP NOT NULL,
+  FOREIGN KEY ("trainer_id") REFERENCES "Trainers"("trainer_id")
 );
 
 -- Admins table creation
@@ -63,19 +69,18 @@ CREATE TABLE "Admins" (
 -- Rooms table creation
 CREATE TABLE "Rooms" (
   "room_id" SERIAL PRIMARY KEY,
-  "name" TEXT NOT NULL,
+  "room_type" TEXT NOT NULL,
   "equipment_status" TEXT
 );
 
--- Sessions (with Trainers) table creation
+-- Session table creation
 CREATE TABLE "Sessions" (
   "session_id" SERIAL PRIMARY KEY,
   "member_id" INTEGER,
-  "trainer_id" INTEGER,
-  "room_id" INTEGER,
-  "session_date" DATE,
-  "session_time" TIME (0) NOT NULL,
-  "session_status" TEXT,
+  "trainer_id" INTEGER NOT NULL,
+  "room_id" INTEGER NOT NULL,
+  "session_date" TIMESTAMP NOT NULL,
+  "session_details" TEXT,
   FOREIGN KEY ("member_id") REFERENCES "Members"("member_id"),
   FOREIGN KEY ("trainer_id") REFERENCES "Trainers"("trainer_id"),
   FOREIGN KEY ("room_id") REFERENCES "Rooms"("room_id")
@@ -84,12 +89,11 @@ CREATE TABLE "Sessions" (
 -- GroupEvents table creation
 CREATE TABLE "GroupEvents" (
   "event_id" SERIAL PRIMARY KEY,
-  "event_name" TEXT,
-  "event_date" DATE,
-  "event_time" TIME (0) NOT NULL,
+  "event_name" TEXT NOT NULL,
+  "event_date" TIMESTAMP NOT NULL,
   "event_description" TEXT,
-  "trainer_id" INTEGER,
-  "room_id" INTEGER,
+  "trainer_id" INTEGER NOT NULL,
+  "room_id" INTEGER NOT NULL,
   FOREIGN KEY ("trainer_id") REFERENCES "Trainers"("trainer_id"),
   FOREIGN KEY ("room_id") REFERENCES "Rooms"("room_id")
 );
