@@ -1,6 +1,7 @@
 # Fitness Club DBMS
 A GUI application for a Health and Fitness Club Management System.
 This system will serve as a platform catering to the needs of club members, trainers, and administrative staff.
+Feel free to play around with it :)
 
 ### Project Report
 • Conceptual Design: the ER-diagram for the Health and Fitness Club, and assumptions
@@ -33,5 +34,5 @@ You can run the Python program using your IDE or use the terminal:
 ```python Management_System_GUI.py```
 
 ### Demo
-Youtube link: https://youtu.be/DNKNI7F-ztw
 From 10:20 to 12:00, the audio does NOT sync up with the video. The snippet should still show that Group Events are created with the database updated successfully.
+Youtube link: https://youtu.be/DNKNI7F-ztw
