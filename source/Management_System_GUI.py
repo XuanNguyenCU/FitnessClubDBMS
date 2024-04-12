@@ -496,7 +496,7 @@ def member_page(user_id):
     member_id = cur.fetchone()[0]
     
     cur.execute("""
-    SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
+    SELECT s.session_id, s.trainer_id, s.session_date, s.session_details, u.username, r.room_type as room_name
     FROM "Sessions" s
     JOIN "Trainers" t ON s.trainer_id = t.trainer_id
     JOIN "Users" u ON t.user_id = u.user_id
@@ -505,7 +505,7 @@ def member_page(user_id):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Details: {session[3]}" 
         for session in sessions
     ]
 
@@ -711,7 +711,7 @@ def schedule_session(member_id, date_id, schedule_window):
     update_member_details_display(member_id, details_listbox)
 
     cur.execute("""
-    SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
+    SELECT s.session_id, s.trainer_id, s.session_date, s.session_details, u.username, r.room_type as room_name
     FROM "Sessions" s
     JOIN "Trainers" t ON s.trainer_id = t.trainer_id
     JOIN "Users" u ON t.user_id = u.user_id
@@ -720,7 +720,7 @@ def schedule_session(member_id, date_id, schedule_window):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Details: {session[3]}" 
         for session in sessions
     ]
     sessions_listbox.delete(0, tk.END)
@@ -754,7 +754,7 @@ def cancel_session(member_id):
     conn.commit()
 
     cur.execute("""
-        SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
+        SELECT s.session_id, s.trainer_id, s.session_date, s.session_details, u.username, r.room_type as room_name
         FROM "Sessions" s
         JOIN "Trainers" t ON s.trainer_id = t.trainer_id
         JOIN "Users" u ON t.user_id = u.user_id
@@ -763,7 +763,7 @@ def cancel_session(member_id):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Details: {session[3]}" 
         for session in sessions
     ]
     sessions_listbox.delete(0, tk.END)
