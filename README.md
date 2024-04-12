@@ -25,7 +25,7 @@ Download DDL.sql and DML.sql from my ```SQL``` folder.
 
 ### Setting up in PosgreSQL
 Login to pgAdmin 4 and create a new database with a name of your choice.
-Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Execute
+Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Execute.
 Optionally, you can just run the Python program which will automatically create tables and set up the sample data.
 
 ### Compilation
