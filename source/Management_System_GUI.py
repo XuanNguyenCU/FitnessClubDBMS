@@ -38,7 +38,7 @@ def registration_page():
     last_name_entry = tk.Entry(registration_window)
     last_name_entry.pack()
 
-    tk.Label(registration_window, text="Fitness Goals:").pack()
+    tk.Label(registration_window, text="Fitness Goal:").pack()
     fitness_goals_entry = tk.Entry(registration_window)
     fitness_goals_entry.pack()
 
@@ -85,18 +85,23 @@ def register_user(username, password, email, first_name, last_name, fitness_goal
                 VALUES (%s, %s, %s, 'member') RETURNING user_id
             """, (username, password, email))
             user_id = cur.fetchone()[0]
+            print(user_id)
 
             # Insert into Members table
             cur.execute("""
-                INSERT INTO "Members" (user_id, first_name, last_name, fitness_goals, exercise_routine, billing_info, loyalty_points) 
+                INSERT INTO "Members" (user_id, first_name, last_name, fitness_goal, exercise_routine, billing_info, loyalty_points) 
                 VALUES (%s, %s, %s, %s, %s, 10.00, 1)
             """, (user_id, first_name, last_name, fitness_goals, exercise_routine))
 
+            cur.execute("SELECT member_id FROM \"Members\" WHERE user_id = %s", (user_id,))
+            member_id = cur.fetchone()[0]
+            print(member_id)
+
             # Insert into HealthMetrics table
             cur.execute("""
-                INSERT INTO "HealthMetrics" (blood_pressure, weight, height) 
-                VALUES (%s, %s, %s)
-            """, (blood_pressure, weight, height))
+                INSERT INTO "HealthMetrics" (member_id, blood_pressure, weight, height) 
+                VALUES (%s, %s, %s, %s)
+            """, (member_id, blood_pressure, weight, height))
             conn.commit()
         window.destroy()
 
@@ -468,7 +473,7 @@ def update_member_details_display(member_id, details_listbox):
                 f"Member ID: {member_details[1]}",
                 f"First Name: {member_details[2]}",
                 f"Last Name: {member_details[3]}",
-                f"Fitness Goals: {member_details[4]}",
+                f"Fitness Goal: {member_details[4]}",
                 f"Exercise Routine: {member_details[5]}",
                 f"Fitness Achievements: {member_details[6]}",
                 f"Outstanding Fees: ${member_details[7]}",
@@ -804,7 +809,7 @@ def update_personal(user_id):
 
     # Update the status of the selected room in the database
     cur = conn.cursor()
-    cur.execute("UPDATE \"Members\" SET fitness_goals = %s WHERE member_id = %s", (new_status, member_id))
+    cur.execute("UPDATE \"Members\" SET fitness_goal = %s WHERE member_id = %s", (new_status, member_id))
     conn.commit()
 
     update_member_details_display(member_id, details_listbox)
@@ -912,7 +917,7 @@ def view_member_profile(conn):
                 f"Member ID: {detail[1]}\n"
                 f"First Name: {detail[2]}\n"
                 f"Last Name: {detail[3]}\n"
-                f"Fitness Goals: {detail[4]}\n"
+                f"Fitness Goal: {detail[4]}\n"
                 f"Exercise Routine: {detail[5]}\n"
                 f"Fitness Achievements: {detail[6]}\n"
                 f"Outstanding Fees: ${detail[7]}" 
