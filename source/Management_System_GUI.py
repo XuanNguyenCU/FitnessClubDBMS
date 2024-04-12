@@ -1,4 +1,7 @@
-import psycopg2, datetime
+# Xuan Nguyen 101228417
+# COMP 3005 - Health and Fitness Management System
+
+import psycopg2
 from decimal import Decimal
 import tkinter as tk
 from tkinter import messagebox, simpledialog
@@ -119,14 +122,12 @@ def login_page():
     # Username
     username_label = tk.Label(main_frame, text="Username", font=("Arial", 12))
     username_label.grid(row=0, column=0, pady=(0, 10), sticky="w")
-    
     username_entry = tk.Entry(main_frame, font=("Arial", 12))
     username_entry.grid(row=0, column=1, pady=(0, 10), padx=(5, 0))
 
     # Password
     password_label = tk.Label(main_frame, text="Password", font=("Arial", 12))
     password_label.grid(row=1, column=0, pady=(0, 10), sticky="w")
-    
     password_entry = tk.Entry(main_frame, show="*", font=("Arial", 12))
     password_entry.grid(row=1, column=1, pady=(0, 10), padx=(5, 0))
 
@@ -177,7 +178,6 @@ def admin_page():
     global events_listbox
     global event_name_entry
     global event_date_entry
-    global event_time_entry
     global event_description_entry
     global event_trainer_entry
     global event_room_entry
@@ -298,7 +298,7 @@ def admin_page():
     for event in events:
         
         # Fetch the trainer name and room using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -378,7 +378,7 @@ def create_event():
     events_listbox.delete(0, tk.END)
     for event in events:
         # Fetch the trainer name and room using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -403,7 +403,6 @@ def delete_event():
         messagebox.showerror("Error", "No event selected")
         return
 
-    # Get the selected event
     selected_event_id = events_listbox.get(selected_event_index)[0]
 
     # Delete the selected event from the database
@@ -416,7 +415,7 @@ def delete_event():
     events_listbox.delete(0, tk.END)
     for event in events:
        # Fetch the trainer name and room using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -506,7 +505,7 @@ def member_page(user_id):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
         for session in sessions
     ]
 
@@ -522,7 +521,7 @@ def member_page(user_id):
     details_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
 
     # Member details section
-    details_listbox = tk.Listbox(details_frame, height=8)
+    details_listbox = tk.Listbox(details_frame, height=7)
     details_listbox.pack(fill=tk.BOTH, expand=True)
 
     update_member_details_display(member_id, details_listbox)
@@ -542,12 +541,20 @@ def member_page(user_id):
 
     # Sessions section
     sessions_frame = tk.LabelFrame(main_frame, text="Your Training Sessions", padx=10, pady=10)
-    sessions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+    sessions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
 
-    sessions_listbox = tk.Listbox(sessions_frame, height=3)
+    sessions_container = tk.Frame(sessions_frame)
+    sessions_container.pack(fill=tk.BOTH, expand=True)
+
+    cancel_button = tk.Button(sessions_container, text="Cancel Session", command=lambda: cancel_session(member_id),
+                              font=('Arial', 10, 'bold'), bg='#f44336', fg='white', padx=8, pady=4)
+    cancel_button.pack(side=tk.LEFT, padx=10, pady=10)
+
+    sessions_listbox = tk.Listbox(sessions_container, height=3)
     for item in sessions_listbox_items:
         sessions_listbox.insert(tk.END, item)
-    sessions_listbox.pack(fill=tk.BOTH, expand=True)
+    sessions_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
 
     # Events section
     events_frame = tk.LabelFrame(main_frame, text="Upcoming Events", padx=10, pady=10)
@@ -713,7 +720,7 @@ def schedule_session(member_id, date_id, schedule_window):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
         for session in sessions
     ]
     sessions_listbox.delete(0, tk.END)
@@ -727,6 +734,43 @@ def schedule_session(member_id, date_id, schedule_window):
     """, (date_id,))
     conn.commit()
     schedule_window.destroy()
+    cur.close()
+    conn.close()
+
+
+def cancel_session(member_id):
+    conn = psycopg2.connect(**db_config)
+    cur = conn.cursor()
+
+    selected_session_index = sessions_listbox.curselection()
+    if len(selected_session_index) == 0:
+        messagebox.showerror("Error", "No session selected.")
+        return
+
+    selected_event_id = sessions_listbox.get(selected_session_index)[0]
+
+    # Delete the selected session from the database
+    cur.execute("DELETE FROM \"Sessions\" WHERE session_id = %s", (selected_event_id,))
+    conn.commit()
+
+    cur.execute("""
+        SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
+        FROM "Sessions" s
+        JOIN "Trainers" t ON s.trainer_id = t.trainer_id
+        JOIN "Users" u ON t.user_id = u.user_id
+        JOIN "Rooms" r ON s.room_id = r.room_id
+    WHERE s.member_id = %s
+    """, (member_id,))
+    sessions = cur.fetchall()
+    sessions_listbox_items = [
+        f"{session[0]}: Training Sesion Booked. Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        for session in sessions
+    ]
+    sessions_listbox.delete(0, tk.END)
+    for item in sessions_listbox_items:
+        sessions_listbox.insert(tk.END, item)
+    sessions_listbox.pack(fill=tk.BOTH, expand=True)
+
     cur.close()
     conn.close()
 
@@ -819,7 +863,7 @@ def register_for_event(member_id, event_id):
     events_listbox_member.delete(0, tk.END)
     for event in events:
         # Fetch the trainer name and room using the trainer ID and room ID
-        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[4],))
         trainer_name = cur.fetchone()[0]
         cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
@@ -831,7 +875,6 @@ def register_for_event(member_id, event_id):
         events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. Details: {event[3]}. {member_count} member(s) attending.")
 
     update_member_details_display(member_id, details_listbox)
-    
     cur.close()
     conn.close()
 
@@ -937,7 +980,7 @@ def trainer_page(user_id):
     conn.close()
 
 
-# Setting up the database by creating tables from the DDL.sql file
+# Setting up the database by creating tables from DDL.sql
 def setupDB():
     conn = psycopg2.connect(**db_config)
     # cursor to perform database operations
@@ -1011,3 +1054,8 @@ def main():
         except Exception as e:
             print("Failed to set up database or log in: " + str(e))
             continue
+
+
+# main guard
+if __name__ == "__main__":
+   main()
