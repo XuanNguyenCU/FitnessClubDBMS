@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg2, datetime
 from decimal import Decimal
 import tkinter as tk
 from tkinter import messagebox, simpledialog
@@ -55,7 +55,7 @@ def registration_page():
     height_entry = tk.Entry(registration_window)
     height_entry.pack()
 
-    submit_button = tk.Button(registration_window, text="Register", command=lambda: register_user(
+    submit_button = tk.Button(registration_window, text="Submit", command=lambda: register_user(
         username_entry.get(),
         password_entry.get(),
         email_entry.get(),
@@ -67,7 +67,9 @@ def registration_page():
         weight_entry.get(),
         height_entry.get(),
         registration_window))
-    submit_button.pack()
+    submit_button.pack(pady=10)  # Adding some padding around the button
+    submit_button.config(font=("Arial", 12, 'bold'), bg="#4CAF50", fg="white", padx=16, pady=8)
+    change_on_hover(submit_button, '#45a049', '#4CAF50')
 
 
 def register_user(username, password, email, first_name, last_name, fitness_goals, exercise_routine, blood_pressure, weight, height, window):
@@ -137,6 +139,7 @@ def login_page():
     # Centering the main_frame
     main_frame.grid_columnconfigure(0, weight=1)
     main_frame.grid_columnconfigure(1, weight=1)
+
     registration_button = tk.Button(window, text="Register", command=lambda: registration_page(), bg='#007bff', fg='white', font=('Arial', 12, 'bold'))
     registration_button.grid(row=0, column=0, sticky="nw", padx=10, pady=10)  # Aligns to top left corner
     change_on_hover(registration_button, '#0056b3', '#007bff')
@@ -197,7 +200,7 @@ def admin_page():
     window.rowconfigure(1, weight=1)
 
     # Scheduled Events Listbox
-    events_label = tk.Label(events_frame, text="Scheduled Events")
+    events_label = tk.Label(events_frame, text="Scheduled Group Events")
     events_label.pack(fill=tk.X)
 
     events_listbox = tk.Listbox(events_frame, width=60, height=10)
@@ -253,10 +256,6 @@ def admin_page():
     event_date_entry = tk.Entry(event_form)
     event_date_entry.grid(row=1, column=1, sticky="ew")
 
-    tk.Label(event_form, text="Event Time").grid(row=2, column=0, sticky="w")
-    event_time_entry = tk.Entry(event_form)
-    event_time_entry.grid(row=2, column=1, sticky="ew")
-
     tk.Label(event_form, text="Event Description").grid(row=3, column=0, sticky="w")
     event_description_entry = tk.Entry(event_form)
     event_description_entry.grid(row=3, column=1, sticky="ew")
@@ -308,7 +307,7 @@ def admin_page():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. Details: {event[3]}. {member_count} member(s) attending.")
 
     # Populate rooms listbox
     cur.execute("SELECT * FROM \"Rooms\"")
@@ -327,46 +326,67 @@ def create_event():
     conn = psycopg2.connect(**db_config)
     cur = conn.cursor()
 
-    event_name = event_name_entry.get()
-    event_date = event_date_entry.get()
-    event_time = event_time_entry.get()
-    event_description = event_description_entry.get()
-    event_trainer = event_trainer_entry.get()
-    event_room = event_room_entry.get()
+    try:
+        # Get the event details from user inputs
+        event_name = event_name_entry.get()
+        event_date = event_date_entry.get() # Adjust the format as necessary
+        event_description = event_description_entry.get()
+        trainer_id = int(event_trainer_entry.get())
+        room_id = int(event_room_entry.get())
 
-    # Check the trainer's availability
-    cur.execute("SELECT availability_date FROM \"Trainers\" WHERE trainer_id = %s", (event_trainer,))
-    trainer_availability = cur.fetchone()
-    if trainer_availability is None:
-        messagebox.showerror("Error", "Trainer ID not found.")
-        return
-    elif event_date != str(trainer_availability[0]):
-        messagebox.showerror("Error", "Trainer is not available on this date.")
-        return
-    else:
-        # Proceed to insert the new event as the trainer is available on this date
+        # Start a transaction
+        cur.execute("BEGIN;")
+
+        # Check for trainer availability on the given date
         cur.execute("""
-            INSERT INTO "GroupEvents" 
-            (event_name, event_date, event_time, event_description, trainer_id, room_id) 
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (event_name, event_date, event_time, event_description, event_trainer, event_room))
-        conn.commit()
-        messagebox.showinfo("Success", "Event created successfully.")
+            SELECT date_id FROM "Dates"
+            WHERE trainer_id = %s AND availability = %s
+        """, (trainer_id, event_date))
+        availability = cur.fetchone()
 
-        cur.execute("SELECT * FROM \"GroupEvents\"")
-        events = cur.fetchall()
-        events_listbox.delete(0, tk.END)
-        for event in events:
-            # Fetch the trainer name and room using the trainer ID and room ID
-            cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
-            trainer_name = cur.fetchone()[0]
-            cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
-            room_name = cur.fetchone()[0]
-            
-            cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
-            member_count = cur.fetchone()[0]
+        if availability is None:
+            messagebox.showerror("Error", "Trainer is not available on this date.")
+            cur.execute("ROLLBACK;")
+            return
+        
+        else:
+            date_id = availability[0]
 
-            events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
+            # Insert the new group event
+            cur.execute("""
+                INSERT INTO "GroupEvents"
+                (event_name, event_date, event_description, trainer_id, room_id)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (event_name, event_date, event_description, trainer_id, room_id))
+
+            # Delete the matched availability
+            cur.execute("""
+                DELETE FROM "Dates"
+                WHERE date_id = %s
+            """, (date_id,))
+
+            # Commit the transaction
+            cur.execute("COMMIT;")
+            messagebox.showinfo("Success", "Event created and trainer availability updated.")
+    
+    except Exception as e:
+        cur.execute("ROLLBACK;")
+        messagebox.showerror("Error", f"Failed to create event: {e}")
+
+    cur.execute("SELECT * FROM \"GroupEvents\"")
+    events = cur.fetchall()
+    events_listbox.delete(0, tk.END)
+    for event in events:
+        # Fetch the trainer name and room using the trainer ID and room ID
+        cur.execute("SELECT username FROM \"Users\" WHERE user_id = (SELECT user_id FROM \"Trainers\" WHERE trainer_id = %s)", (event[5],))
+        trainer_name = cur.fetchone()[0]
+        cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
+        room_name = cur.fetchone()[0]
+        
+        cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
+        member_count = cur.fetchone()[0]
+
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. {member_count} members attending.")
 
     cur.close()
     conn.close()
@@ -405,7 +425,7 @@ def delete_event():
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
+        events_listbox.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. Details: {event[3]}. {member_count} member(s) attending.")
 
     cur.close()
     conn.close()
@@ -467,6 +487,7 @@ def update_member_details_display(member_id, details_listbox):
 def member_page(user_id):
     global events_listbox_member
     global details_listbox
+    global sessions_listbox
     global health_metrics_listbox
     global fitness_goal_entry, blood_pressure_entry, weight_entry, height_entry
     conn = psycopg2.connect(**db_config)
@@ -476,7 +497,7 @@ def member_page(user_id):
     member_id = cur.fetchone()[0]
     
     cur.execute("""
-    SELECT s.session_id, s.trainer_id, s.session_date, s.session_time, s.session_status, u.username, r.room_type as room_name
+    SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
     FROM "Sessions" s
     JOIN "Trainers" t ON s.trainer_id = t.trainer_id
     JOIN "Users" u ON t.user_id = u.user_id
@@ -485,13 +506,13 @@ def member_page(user_id):
     """, (member_id,))
     sessions = cur.fetchall()
     sessions_listbox_items = [
-        f"Date: {session[2]}, Time: {session[3]}, Trainer: {session[5]}, Room: {session[6]}, Status: {session[4]}" 
+        f"Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
         for session in sessions
     ]
 
     window = tk.Tk()
     window.title("Member Page")
-    window.geometry("900x850")
+    window.geometry("800x650")
 
     main_frame = tk.Frame(window)
     main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -520,10 +541,10 @@ def member_page(user_id):
     health_metrics_listbox.pack(fill=tk.BOTH, expand=True)
 
     # Sessions section
-    sessions_frame = tk.LabelFrame(main_frame, text="Your Sessions", padx=10, pady=10)
+    sessions_frame = tk.LabelFrame(main_frame, text="Your Training Sessions", padx=10, pady=10)
     sessions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
 
-    sessions_listbox = tk.Listbox(sessions_frame, height=2)
+    sessions_listbox = tk.Listbox(sessions_frame, height=3)
     for item in sessions_listbox_items:
         sessions_listbox.insert(tk.END, item)
     sessions_listbox.pack(fill=tk.BOTH, expand=True)
@@ -542,16 +563,16 @@ def member_page(user_id):
         FROM "Users" u
         JOIN "Trainers" t ON u.user_id = t.user_id
         WHERE t.trainer_id = %s
-        """, (event[5],))
+        """, (event[4],))
         trainer_name = cur.fetchone()[0]
-        cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[6],))
+        cur.execute("SELECT room_type FROM \"Rooms\" WHERE room_id = %s", (event[5],))
         room_name = cur.fetchone()[0]
 
         # Count the number of members attending the event
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. Details: {event[3]}. {member_count} member(s) attending.")
 
     events_listbox_member.pack(fill=tk.BOTH, expand=True)
     buttons_frame = tk.Frame(main_frame)
@@ -590,7 +611,7 @@ def member_page(user_id):
     update_metrics_button.pack(pady=10)
 
     set_goal_button = tk.Button(details_frame, text="Update Personal Info", command=lambda: update_personal(user_id), font=('Arial', 10, 'bold'),
-                                    bg='#007BFF',
+                                    bg='#dda0dd',
                                     fg='white',
                                     padx=8, # Horizontal padding
                                     pady=4) # Vertical padding
@@ -599,28 +620,115 @@ def member_page(user_id):
     buttons_frame.grid_columnconfigure(0, weight=1)
     buttons_frame.grid_columnconfigure(1, weight=1)
     buttons_frame.grid_columnconfigure(2, weight=1)
+    buttons_frame.grid_columnconfigure(3, weight=1)
 
+    # Pay Bills Button
     pay_bills_button = tk.Button(buttons_frame, text="Pay Bills", command=lambda: pay_bills(member_id),
-                                font=('Arial', 12, 'bold'), bg='#CB09F6', fg='white')
+                                 font=('Arial', 12, 'bold'), bg='#CB09F6', fg='white')
     pay_bills_button.grid(row=0, column=0, padx=5, pady=10, sticky='ew')  # Expanded to fill the grid cell
 
+    # Registration Button
     register_button = tk.Button(buttons_frame, text="Register for Event", 
                                 command=lambda: register_for_event(member_id, events_listbox_member.get(tk.ACTIVE)[0]),
                                 font=('Arial', 12, 'bold'), bg='#4CAF50', fg='white')
     register_button.grid(row=0, column=1, padx=10, pady=10, sticky='ew')  # Expanded to fill the grid cell
 
+    # Schedule Session Button
+    schedule_session_button = tk.Button(buttons_frame, text="Schedule Session", 
+                                        command=lambda: schedule_page(member_id),
+                                        font=('Arial', 12, 'bold'), bg='#007bff', fg='white')
+    schedule_session_button.grid(row=0, column=2, padx=10, pady=10, sticky='ew')  # Expanded to fill the grid cell
+
+    # Logout Button
     logout_button = tk.Button(buttons_frame, text="Logout", 
-                            command=window.destroy,
-                            font=('Arial', 12, 'bold'), bg='#f44336', fg='white')
-    logout_button.grid(row=0, column=2, padx=10, pady=10, sticky='ew')  # Expanded to fill the grid cell
+                              command=window.destroy,
+                              font=('Arial', 12, 'bold'), bg='#f44336', fg='white')
+    logout_button.grid(row=0, column=3, padx=10, pady=10, sticky='ew')
 
     change_on_hover(register_button, '#45a049', '#4CAF50')
+    change_on_hover(schedule_session_button, '#0056b3', '#007bff')
     change_on_hover(logout_button, '#d32f2f', '#f44336')
     change_on_hover(pay_bills_button, '#B307D9', '#CB09F6')
 
     cur.close()
     conn.close()
     window.mainloop()
+
+def schedule_page(member_id):
+    schedule_window = tk.Toplevel()
+    schedule_window.title("Schedule a Session")
+    schedule_window.geometry("600x400")
+
+    listbox = tk.Listbox(schedule_window, height=15, width=50)
+    listbox.pack(pady=20)
+
+    conn = psycopg2.connect(**db_config)
+    cur = conn.cursor()
+    cur.execute("SELECT date_id, availability, trainer_id FROM \"Dates\" ORDER BY availability")
+    dates = cur.fetchall()
+    for date in dates:
+        listbox.insert(tk.END, f"{date[0]}, Date: {date[1]}")
+
+    submit_button = tk.Button(schedule_window, text="Register for Event", 
+                                command=lambda: schedule_session(member_id, listbox.get(tk.ACTIVE)[0], schedule_window),
+                                font=('Arial', 12, 'bold'), bg='#4CAF50', fg='white')
+    submit_button.pack(pady=10)
+
+    cur.close()
+    conn.close()
+
+def schedule_session(member_id, date_id, schedule_window):
+    conn = psycopg2.connect(**db_config)
+    cur = conn.cursor()
+
+    cur.execute("SELECT trainer_id, availability FROM \"Dates\" WHERE date_id = %s", date_id)
+    schedule_details = cur.fetchall() # a tuple (availability, trainer_id)
+    print(schedule_details)
+    trainer_id, trainer_availability = schedule_details[0]
+
+    # Formatting the availability as a string in the 'YYYY-MM-DD HH:MM:SS' format
+    trainer_availability = trainer_availability.strftime('%Y-%m-%d %H:%M:%S')
+    
+
+    cur.execute("INSERT INTO \"Sessions\" (member_id, trainer_id, room_id, session_date) VALUES (%s, %s, %s, %s)",
+                            (member_id, trainer_id, 1, trainer_availability))
+    conn.commit()
+    messagebox.showinfo("Success", "Session Scheduled Successfully")
+
+    cur.execute("SELECT billing_info FROM \"Members\" WHERE member_id = %s", (member_id,))
+    current_billing = cur.fetchone()[0] or Decimal('0.00')  # Default to Decimal('0.00') if None
+    # Update billing_info with an additional $15.99
+    new_billing = current_billing + Decimal('15.99')
+    cur.execute("UPDATE \"Members\" SET billing_info = %s WHERE member_id = %s", (new_billing, member_id))
+    conn.commit()
+    update_member_details_display(member_id, details_listbox)
+
+    cur.execute("""
+    SELECT s.session_id, s.trainer_id, s.session_date, s.session_notes, u.username, r.room_type as room_name
+    FROM "Sessions" s
+    JOIN "Trainers" t ON s.trainer_id = t.trainer_id
+    JOIN "Users" u ON t.user_id = u.user_id
+    JOIN "Rooms" r ON s.room_id = r.room_id
+    WHERE s.member_id = %s
+    """, (member_id,))
+    sessions = cur.fetchall()
+    sessions_listbox_items = [
+        f"Date: {session[2]}, Trainer: {session[4]}, Room: {session[5]}, Notes: {session[3]}" 
+        for session in sessions
+    ]
+    sessions_listbox.delete(0, tk.END)
+    for item in sessions_listbox_items:
+        sessions_listbox.insert(tk.END, item)
+    sessions_listbox.pack(fill=tk.BOTH, expand=True)
+
+    cur.execute("""
+        DELETE FROM "Dates"
+        WHERE date_id = %s
+    """, (date_id,))
+    conn.commit()
+    schedule_window.destroy()
+    cur.close()
+    conn.close()
 
 
 def pay_bills(member_id):
@@ -720,7 +828,7 @@ def register_for_event(member_id, event_id):
         cur.execute("SELECT COUNT(*) FROM \"MemberGroupEvent\" WHERE event_id = %s", (event[0],))
         member_count = cur.fetchone()[0]
 
-        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]} at {event[3]}. {member_count} members attending.")
+        events_listbox_member.insert(tk.END, f"{event[0]}: {event[1]}, held by {trainer_name} in the {room_name}. Date: {event[2]}. Details: {event[3]}. {member_count} member(s) attending.")
 
     update_member_details_display(member_id, details_listbox)
     
@@ -729,21 +837,20 @@ def register_for_event(member_id, event_id):
 
 
 def set_trainer_availability(conn, trainer_id):
-
-    new_date = simpledialog.askstring("Availability", "Enter your available date (e.g., '2024-04-30'): ")
+    new_date = simpledialog.askstring("Availability", "Enter your available date and time (e.g., '2024-04-30 15:30:05'): ")
     if new_date:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE \"Trainers\" SET availability_date = %s WHERE trainer_id = %s", (new_date, trainer_id))
-            conn.commit()
-        messagebox.showinfo("Success", f"Your availability date has been updated to {new_date}.")
-
-    new_time = simpledialog.askstring("Availability", "Enter your available times (e.g., '15:30:00'): ")
-    if new_time:
-        with conn.cursor() as cur:
-            cur.execute("UPDATE \"Trainers\" SET availability_time = %s WHERE trainer_id = %s", (new_time, trainer_id))
-            conn.commit()
-        messagebox.showinfo("Success", f"Your availability time has been updated to {new_time}.")
-
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO "Dates" (trainer_id, availability) 
+                    VALUES (%s, %s)
+                """, (trainer_id, new_date))
+                conn.commit()
+            messagebox.showinfo("Success", f"Your availability date has been added: {new_date}.")
+        except ValueError:
+            messagebox.showerror("Error", "Invalid date format. Please use 'YYYY-MM-DD HH:MM' format.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update availability: {e}")
 
 def view_member_profile(conn):
     member_name = simpledialog.askstring("Member Search", "Enter the member's first name to search: ")
@@ -770,8 +877,7 @@ def view_member_profile(conn):
             messagebox.showinfo("Member Profile", details_str)
 
         else:
-            messagebox.showinfo("Member Profile", "No member found with that name.")
-
+            messagebox.showinfo("Member Profile", "No member found with that first name.")
 
 def get_trainer_id(conn, user_id):
     with conn.cursor() as cur:
@@ -886,18 +992,22 @@ def main():
             continue  # Prompt again for database details
 
     while (True):
-        login_page()
-        user_id = login_result[0]
-        user_type = login_result[4]
-    
-        if (user_type == "admin"):
-            print("Admin Login")
-            admin_page()
+        try:
+            login_page()
+            user_id = login_result[0]
+            user_type = login_result[4]
+        
+            if (user_type == "admin"):
+                print("Admin Login")
+                admin_page()
 
-        elif (user_type == "trainer"):
-            print("Trainer login")
-            trainer_page(user_id)
+            elif (user_type == "trainer"):
+                print("Trainer login")
+                trainer_page(user_id)
 
-        elif (user_type == "member"):
-            print("Member login")
-            member_page(user_id)
+            elif (user_type == "member"):
+                print("Member login")
+                member_page(user_id)
+        except Exception as e:
+            print("Failed to set up database or log in: " + str(e))
+            continue
