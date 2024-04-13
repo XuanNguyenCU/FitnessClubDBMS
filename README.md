@@ -4,9 +4,9 @@ This system will serve as a platform catering to the needs of club members, trai
 Feel free to play around with it :)
 
 ### Project Report
-• Conceptual Design: the ER-diagram for the Health and Fitness Club, and assumptions
+• Conceptual Design: the ER diagram for the Health and Fitness Club, and assumptions
 
-• Reduction to Relation Schemas: consolidate ER-diagram into relational schemas using the most effective method for mapping ER components to tables.
+• Reduction to Relation Schemas: consolidate ER diagram into relational schemas using the most effective method for mapping ER components to tables.
 
 • DDL File
 
@@ -25,12 +25,12 @@ Download Management_System_GUI.py from my ```source``` folder.
 Download DDL.sql and DML.sql from my ```SQL``` folder.
 
 ### Setting up in PostgreSQL
-Login to pgAdmin 4 and create a new database with a name of your choice.
-Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Execute.
-Optionally, you can just run the Python program which will automatically create tables and set up the sample data.
+Login to pgAdmin 4 and create a new database with a name of your choice.\
+Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Execute.\
+Optionally, you can just run the Python program which will automatically create the tables and set up the sample data.
 
 ### Compilation
-You can run the Python program using your IDE or use the terminal:
+You can run the Python program using your IDE or use the terminal:\
 ```python Management_System_GUI.py```
 
 Once the program is running, it will prompt you for the database name, pgAdmin 4 username, and password.\
