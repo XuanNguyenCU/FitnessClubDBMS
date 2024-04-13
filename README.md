@@ -24,7 +24,7 @@ Open the command prompt (Windows) or the terminal (MacOS) and run the below comm
 Download Management_System_GUI.py from my ```source``` folder.
 Download DDL.sql and DML.sql from my ```SQL``` folder.
 
-### Setting up in PosgreSQL
+### Setting up in PostgreSQL
 Login to pgAdmin 4 and create a new database with a name of your choice.
 Go to Query tool => Open the DDL.sql and DML.sql scripts from local device => Execute.
 Optionally, you can just run the Python program which will automatically create tables and set up the sample data.
@@ -33,7 +33,7 @@ Optionally, you can just run the Python program which will automatically create 
 You can run the Python program using your IDE or use the terminal:
 ```python Management_System_GUI.py```
 
-Once the program is running, it'll promt you for the database name, pgAdmin 4 username, and password.\
+Once the program is running, it will prompt you for the database name, pgAdmin 4 username, and password.\
 ```Enter the database name: <name of database you created on postgreSQL>```\
 ```Enter your pgadmin 4 username: postgres```\
 ```Enter your pgadmin 4 password: <your pgAdmin 4 password>```
