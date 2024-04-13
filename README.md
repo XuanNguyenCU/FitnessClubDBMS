@@ -34,10 +34,10 @@ You can run the Python program using your IDE or use the terminal:
 ```python Management_System_GUI.py```
 
 Once the program is running, it'll promt you for the database name, pgAdmin 4 username, and password.\
-```Enter the database name: <name of database you created>```\
+```Enter the database name: <name of database you created on postgreSQL>```\
 ```Enter your pgadmin 4 username: postgres```\
-```Enter your pgadmin 4 password: <your pgAdmin 4 password>```\
+```Enter your pgadmin 4 password: <your pgAdmin 4 password>```
 
 ### Demo
-From 10:20 to 12:00, the audio does NOT sync up with the video. That section should still show that Group Events are created with the database updated successfully.
+From 10:20 to 12:00, the audio does NOT sync up with the video. That section should still show that Group Events are created with the database updated successfully.\
 Youtube link: https://youtu.be/DNKNI7F-ztw
